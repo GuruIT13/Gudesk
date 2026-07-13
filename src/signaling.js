@@ -23,8 +23,21 @@ function closeWithError(ws, reason) {
   ws.close();
 }
 
+async function startSession(room, orgId, deviceId, userId) {
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO remote_sessions (org_id, device_id, controller_id, connection_mode)
+       VALUES ($1, $2, $3, 'p2p') RETURNING id`,
+      [orgId, deviceId, userId]
+    );
+    room.sessionId = rows[0].id;
+  } catch (err) {
+    console.error('Signaling session insert error:', err.message);
+  }
+}
+
 async function handleDevice(ws, deviceUid) {
-  let deviceId;
+  let deviceId, orgId;
   try {
     const { rows } = await pool.query(
       'SELECT id, org_id FROM devices WHERE device_uid = $1',
@@ -34,6 +47,7 @@ async function handleDevice(ws, deviceUid) {
       return closeWithError(ws, 'device_not_found');
     }
     deviceId = rows[0].id;
+    orgId = rows[0].org_id;
   } catch (err) {
     console.error('Signaling device auth error:', err.message);
     return ws.close();
@@ -43,6 +57,7 @@ async function handleDevice(ws, deviceUid) {
   room.device = ws;
 
   if (room.controller) {
+    await startSession(room, orgId, deviceId, room.controllerUserId);
     send(room.controller, { type: 'peer-joined' });
     send(ws, { type: 'peer-joined' });
   }
@@ -66,6 +81,7 @@ async function handleDevice(ws, deviceUid) {
       } catch (err) {
         console.error('Signaling session close error:', err.message);
       }
+      room.sessionId = null;
     }
     if (!room.device && !room.controller) rooms.delete(deviceId);
   });
@@ -95,19 +111,11 @@ async function handleController(ws, token, deviceId) {
   const room = getOrCreateRoom(deviceId);
   if (room.controller) return closeWithError(ws, 'device_busy');
   room.controller = ws;
-
-  try {
-    const { rows } = await pool.query(
-      `INSERT INTO remote_sessions (org_id, device_id, controller_id, connection_mode)
-       VALUES ($1, $2, $3, 'p2p') RETURNING id`,
-      [orgId, deviceId, userId]
-    );
-    room.sessionId = rows[0].id;
-  } catch (err) {
-    console.error('Signaling session insert error:', err.message);
-  }
+  room.controllerUserId = userId;
+  room.controllerOrgId = orgId;
 
   if (room.device) {
+    await startSession(room, orgId, deviceId, userId);
     send(room.device, { type: 'peer-joined' });
     send(ws, { type: 'peer-joined' });
   }
@@ -151,6 +159,7 @@ async function handleController(ws, token, deviceId) {
       } catch (err) {
         console.error('Signaling disconnect error:', err.message);
       }
+      room.sessionId = null;
     }
     if (!room.device && !room.controller) rooms.delete(deviceId);
   });
