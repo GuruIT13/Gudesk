@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/session/presentation/connecting_screen.dart';
-import '../../features/session/presentation/remote_placeholder_screen.dart';
+import '../../features/session/presentation/remote_screen.dart';
 import '../../features/session/domain/session_state.dart';
 import '../storage/secure_storage.dart';
 
@@ -38,7 +38,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, state) {
           final info = state.extra;
           if (info is! SessionInfo) return const HomeScreen();
-          return RemotePlaceholderScreen(sessionInfo: info);
+          return RemoteScreen(sessionInfo: info);
         },
       ),
     ],
