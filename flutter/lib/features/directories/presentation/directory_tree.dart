@@ -44,6 +44,7 @@ class _DirectoryTile extends ConsumerWidget {
       leading: const Icon(Icons.folder_open, size: 18),
       title: Text(dir.name),
       initiallyExpanded: true,
+      onTap: () => ref.read(selectedDirectoryProvider.notifier).state = dir.id,
       children: dir.children.map((c) => _DirectoryTile(dir: c)).toList(),
     );
   }
