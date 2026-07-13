@@ -84,3 +84,75 @@ describe('DELETE /api/enrollment-tokens/:id', () => {
     expect(res.body.ok).toBe(true);
   });
 });
+
+describe('POST /api/devices/enroll', () => {
+  test('valid token enrolls device — returns 201 with device_id, device_uid, org_id', async () => {
+    const res = await request(app)
+      .post('/api/devices/enroll')
+      .send({
+        token: validToken,
+        hostname: 'TEST-DEVICE-01',
+        os_type: 'linux',
+        os_version: '22.04',
+      });
+    expect(res.status).toBe(201);
+    expect(res.body).toHaveProperty('device_id');
+    expect(res.body).toHaveProperty('device_uid');
+    expect(res.body).toHaveProperty('org_id');
+    expect(res.body.org_id).toBe(orgAId);
+  });
+
+  test('invalid/unknown token returns 401', async () => {
+    const res = await request(app)
+      .post('/api/devices/enroll')
+      .send({ token: 'a'.repeat(64), hostname: 'FAKE-DEVICE' });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('invalid_token');
+  });
+
+  test('expired token returns 401', async () => {
+    const crypto = require('crypto');
+    const expiredPlaintext = 'expired_token_test_value'.padEnd(64, '0');
+    const expiredHash = crypto.createHash('sha256').update(expiredPlaintext).digest('hex');
+    const { rows: orgRows } = await pool.query(
+      "SELECT id FROM organizations WHERE slug = 'alpha-corp' LIMIT 1"
+    );
+    const { rows: userRows } = await pool.query(
+      "SELECT id FROM users WHERE email = 'alice@alpha.com' LIMIT 1"
+    );
+    await pool.query(
+      `INSERT INTO enrollment_tokens (org_id, created_by, token_hash, expires_at)
+       VALUES ($1, $2, $3, now() - interval '1 hour')
+       ON CONFLICT (token_hash) DO NOTHING`,
+      [orgRows[0].id, userRows[0].id, expiredHash]
+    );
+    const res = await request(app)
+      .post('/api/devices/enroll')
+      .send({ token: expiredPlaintext, hostname: 'FAKE' });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('invalid_token');
+  });
+
+  test('already used token returns 401', async () => {
+    const crypto = require('crypto');
+    const usedPlaintext = 'used_token_test_value_here'.padEnd(64, '0');
+    const usedHash = crypto.createHash('sha256').update(usedPlaintext).digest('hex');
+    const { rows: orgRows } = await pool.query(
+      "SELECT id FROM organizations WHERE slug = 'alpha-corp' LIMIT 1"
+    );
+    const { rows: userRows } = await pool.query(
+      "SELECT id FROM users WHERE email = 'alice@alpha.com' LIMIT 1"
+    );
+    await pool.query(
+      `INSERT INTO enrollment_tokens (org_id, created_by, token_hash, expires_at, used_at)
+       VALUES ($1, $2, $3, now() + interval '1 hour', now() - interval '5 minutes')
+       ON CONFLICT (token_hash) DO NOTHING`,
+      [orgRows[0].id, userRows[0].id, usedHash]
+    );
+    const res = await request(app)
+      .post('/api/devices/enroll')
+      .send({ token: usedPlaintext, hostname: 'FAKE' });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBe('invalid_token');
+  });
+});
