@@ -81,6 +81,9 @@ class SignalingNotifier extends Notifier<SignalingState> {
   void _cleanup() {
     _timeout?.cancel();
     _sub?.cancel();
+    _channel?.sink.close();
+    _channel = null;
+    _sub = null;
   }
 }
 
