@@ -42,9 +42,11 @@ class _DirectoryTile extends ConsumerWidget {
     return ExpansionTile(
       dense: true,
       leading: const Icon(Icons.folder_open, size: 18),
-      title: Text(dir.name),
+      title: GestureDetector(
+        onTap: () => ref.read(selectedDirectoryProvider.notifier).state = dir.id,
+        child: Text(dir.name),
+      ),
       initiallyExpanded: true,
-      onTap: () => ref.read(selectedDirectoryProvider.notifier).state = dir.id,
       children: dir.children.map((c) => _DirectoryTile(dir: c)).toList(),
     );
   }
