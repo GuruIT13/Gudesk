@@ -99,8 +99,8 @@ router.delete('/:id', scopeToOrg, requireRole('owner', 'admin'), async (req, res
     if (!existing.length) return res.status(404).json({ error: 'not_found' });
 
     const { rows: devCount } = await pool.query(
-      'SELECT COUNT(*) FROM devices WHERE directory_id = $1',
-      [req.params.id]
+      'SELECT COUNT(*) FROM devices WHERE directory_id = $1 AND org_id = $2',
+      [req.params.id, req.orgId]
     );
     if (parseInt(devCount[0].count) > 0) {
       return res.status(409).json({ error: 'directory_has_devices' });
