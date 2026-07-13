@@ -12,16 +12,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
     redirect: (context, state) async {
-      final jwt = await secureStorage.readJwt();
-      if (jwt != null) {
-        apiClient.setJwt(jwt);
-        ref.read(jwtProvider.notifier).state = jwt;
+      try {
+        final jwt = await secureStorage.readJwt();
+        if (jwt != null) {
+          apiClient.setJwt(jwt);
+          ref.read(jwtProvider.notifier).state = jwt;
+        }
+        final isLoggedIn = jwt != null;
+        final isLoggingIn = state.matchedLocation == '/login';
+        if (!isLoggedIn && !isLoggingIn) return '/login';
+        if (isLoggedIn && isLoggingIn) return '/home';
+        return null;
+      } catch (_) {
+        return '/login';
       }
-      final isLoggedIn = jwt != null;
-      final isLoggingIn = state.matchedLocation == '/login';
-      if (!isLoggedIn && !isLoggingIn) return '/login';
-      if (isLoggedIn && isLoggingIn) return '/home';
-      return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
@@ -29,7 +33,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/connecting',
         builder: (_, state) {
-          final deviceId = state.uri.queryParameters['deviceId']!;
+          final deviceId = state.uri.queryParameters['deviceId'] ?? '';
           final hostname = state.uri.queryParameters['hostname'] ?? deviceId;
           return ConnectingScreen(deviceId: deviceId, hostname: hostname);
         },
