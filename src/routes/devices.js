@@ -43,7 +43,7 @@ router.get('/:id', scopeToOrg, async (req, res) => {
 });
 
 // PATCH /api/devices/:id
-router.patch('/:id', scopeToOrg, async (req, res) => {
+router.patch('/:id', scopeToOrg, requireRole('owner', 'admin'), async (req, res) => {
   const { hostname, directory_id } = req.body;
   try {
     const { rows: existing } = await pool.query(
