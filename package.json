@@ -1,0 +1,30 @@
+{
+  "name": "gudesk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "migrate:up": "node-pg-migrate up --migrations-dir migrations --envPath .env",
+    "migrate:down": "node-pg-migrate down --migrations-dir migrations --envPath .env",
+    "migrate:create": "node-pg-migrate create --migrations-dir migrations",
+    "seed": "node seeds/seed.js",
+    "start": "node src/server.js",
+    "test": "jest --runInBand"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "argon2": "^0.44.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "node-pg-migrate": "^8.0.4",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
+  }
+}
