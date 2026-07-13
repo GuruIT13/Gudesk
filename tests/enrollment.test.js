@@ -37,6 +37,8 @@ describe('POST /api/enrollment-tokens', () => {
     expect(res.body).toHaveProperty('expires_at');
     expect(typeof res.body.token).toBe('string');
     expect(res.body.token).toHaveLength(64);
+    expect(new Date(res.body.expires_at).getTime()).toBeGreaterThan(Date.now());
+    expect(res.body).not.toHaveProperty('token_hash');
     createdTokenId = res.body.id;
     validToken = res.body.token;
   });
@@ -58,9 +60,12 @@ describe('GET /api/enrollment-tokens', () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThan(0);
-    expect(res.body[0]).toHaveProperty('is_expired');
-    expect(res.body[0]).toHaveProperty('expires_at');
-    expect(res.body[0]).toHaveProperty('created_by');
+    const created = res.body.find(r => r.id === createdTokenId);
+    expect(created).toBeDefined();
+    expect(created).toHaveProperty('is_expired');
+    expect(created).toHaveProperty('expires_at');
+    expect(created).toHaveProperty('created_by');
+    expect(created).not.toHaveProperty('token_hash');
   });
 });
 

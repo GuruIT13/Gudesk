@@ -8,7 +8,7 @@ const router = express.Router();
 
 router.post('/', scopeToOrg, requireRole('owner', 'admin'), async (req, res) => {
   try {
-    const expiresInHours = Math.min(Number(req.body.expires_in_hours) || 24, 168);
+    const expiresInHours = Math.min(Math.max(Number(req.body.expires_in_hours) || 24, 1), 168);
     const plaintext = crypto.randomBytes(32).toString('hex');
     const token_hash = crypto.createHash('sha256').update(plaintext).digest('hex');
     const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
