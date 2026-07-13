@@ -57,7 +57,7 @@ async function handleDevice(ws, deviceUid) {
   room.device = ws;
 
   if (room.controller) {
-    await startSession(room, orgId, deviceId, room.controllerUserId);
+    await startSession(room, room.controllerOrgId, deviceId, room.controllerUserId);
     send(room.controller, { type: 'peer-joined' });
     send(ws, { type: 'peer-joined' });
   }
