@@ -4,6 +4,7 @@ const pool = require('../src/db');
 
 let tokenAlice;  // Org A owner
 let tokenBob;    // Org A member
+let tokenCarol;  // Org B owner
 let orgAId;
 let createdTokenId;
 let validToken;
@@ -19,6 +20,11 @@ beforeAll(async () => {
     .post('/api/auth/login')
     .send({ email: 'bob@alpha.com', password: 'plaintext_bob' });
   tokenBob = resB.body.token;
+
+  const resC = await request(app)
+    .post('/api/auth/login')
+    .send({ email: 'carol@beta.com', password: 'plaintext_carol' });
+  tokenCarol = resC.body.token;
 });
 
 afterAll(async () => {
@@ -82,6 +88,26 @@ describe('DELETE /api/enrollment-tokens/:id', () => {
       .set('Authorization', `Bearer ${tokenAlice}`);
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
+  });
+});
+
+describe('Cross-org isolation for enrollment-tokens', () => {
+  test('GET /api/enrollment-tokens does not return Org A tokens to Org B user', async () => {
+    const res = await request(app)
+      .get('/api/enrollment-tokens')
+      .set('Authorization', `Bearer ${tokenCarol}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    // Org B user should not see any Org A tokens
+    expect(res.body.every(r => r.id !== createdTokenId)).toBe(true);
+  });
+
+  test('DELETE /api/enrollment-tokens/:id returns 404 for cross-org token', async () => {
+    const res = await request(app)
+      .delete(`/api/enrollment-tokens/${createdTokenId}`)
+      .set('Authorization', `Bearer ${tokenCarol}`);
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe('not_found');
   });
 });
 
