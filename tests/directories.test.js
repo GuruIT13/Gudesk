@@ -101,6 +101,35 @@ describe('DELETE /api/directories/:id', () => {
     expect(res.body.error).toBe('directory_has_devices');
   });
 
+  test('returns 409 when directory has children', async () => {
+    // Create a parent directory
+    const parentRes = await request(app)
+      .post('/api/directories')
+      .set('Authorization', `Bearer ${tokenAlice}`)
+      .send({ name: 'Parent With Child' });
+    const parentId = parentRes.body.id;
+
+    // Create a child directory under it
+    await request(app)
+      .post('/api/directories')
+      .set('Authorization', `Bearer ${tokenAlice}`)
+      .send({ name: 'Child Dir', parent_id: parentId });
+
+    // Try to delete parent — should 409
+    const res = await request(app)
+      .delete(`/api/directories/${parentId}`)
+      .set('Authorization', `Bearer ${tokenAlice}`);
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('directory_has_children');
+
+    // Cleanup: delete child then parent
+    const { rows: children } = await pool.query(
+      "SELECT id FROM directories WHERE name = 'Child Dir' LIMIT 1"
+    );
+    await pool.query('DELETE FROM directories WHERE id = $1', [children[0].id]);
+    await pool.query('DELETE FROM directories WHERE id = $1', [parentId]);
+  });
+
   test('deletes an empty directory and returns 200', async () => {
     const res = await request(app)
       .delete(`/api/directories/${newDirId}`)
