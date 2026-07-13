@@ -31,7 +31,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ref.read(jwtProvider.notifier).state = result.token;
       if (mounted) context.go('/home');
     } on AuthException catch (e) {
-      setState(() { _error = e.message; });
+      if (mounted) setState(() { _error = e.message; });
+    } catch (e) {
+      if (mounted) setState(() { _error = 'Connection error. Please try again.'; });
     } finally {
       if (mounted) setState(() { _loading = false; });
     }
