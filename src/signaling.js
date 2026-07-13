@@ -7,7 +7,7 @@ const rooms = new Map();
 
 function getOrCreateRoom(deviceId) {
   if (!rooms.has(deviceId)) {
-    rooms.set(deviceId, { device: null, controller: null, sessionId: null });
+    rooms.set(deviceId, { device: null, controller: null, sessionId: null, sessionPending: null });
   }
   return rooms.get(deviceId);
 }
@@ -34,6 +34,7 @@ async function startSession(room, orgId, deviceId, userId) {
   } catch (err) {
     console.error('Signaling session insert error:', err.message);
   }
+  room.sessionPending = null;
 }
 
 async function handleDevice(ws, deviceUid) {
@@ -57,7 +58,9 @@ async function handleDevice(ws, deviceUid) {
   room.device = ws;
 
   if (room.controller) {
-    await startSession(room, room.controllerOrgId, deviceId, room.controllerUserId);
+    const p = startSession(room, room.controllerOrgId, deviceId, room.controllerUserId);
+    room.sessionPending = p;
+    await p;
     send(room.controller, { type: 'peer-joined' });
     send(ws, { type: 'peer-joined' });
   }
@@ -71,6 +74,7 @@ async function handleDevice(ws, deviceUid) {
   ws.on('close', async () => {
     room.device = null;
     if (room.controller) send(room.controller, { type: 'peer-left' });
+    if (room.sessionPending) await room.sessionPending;
     if (room.sessionId) {
       try {
         await pool.query(
@@ -115,7 +119,9 @@ async function handleController(ws, token, deviceId) {
   room.controllerOrgId = orgId;
 
   if (room.device) {
-    await startSession(room, orgId, deviceId, userId);
+    const p = startSession(room, orgId, deviceId, userId);
+    room.sessionPending = p;
+    await p;
     send(room.device, { type: 'peer-joined' });
     send(ws, { type: 'peer-joined' });
   }
@@ -125,6 +131,7 @@ async function handleController(ws, token, deviceId) {
     try { msg = JSON.parse(data); } catch { return; }
 
     if (msg.type === 'session-end') {
+      if (room.sessionPending) await room.sessionPending;
       if (room.sessionId) {
         try {
           await pool.query(
@@ -136,9 +143,12 @@ async function handleController(ws, token, deviceId) {
           console.error('Signaling session-end error:', err.message);
         }
       }
+      // Null sessionId before closing device so device close handler skips the UPDATE
       room.sessionId = null;
-      send(room.device, { type: 'session-end' });
-      if (room.device) room.device.close();
+      if (room.device) {
+        send(room.device, { type: 'session-end' });
+        room.device.close();
+      }
       ws.close();
       return;
     }
@@ -149,6 +159,7 @@ async function handleController(ws, token, deviceId) {
   ws.on('close', async () => {
     room.controller = null;
     if (room.device) send(room.device, { type: 'peer-left' });
+    if (room.sessionPending) await room.sessionPending;
     if (room.sessionId) {
       try {
         await pool.query(
@@ -175,9 +186,15 @@ function attachSignaling(server) {
     const deviceId = params.get('device_id');
 
     if (deviceUid) {
-      handleDevice(ws, deviceUid);
+      handleDevice(ws, deviceUid).catch((err) => {
+        console.error('Unhandled handleDevice error:', err.message);
+        ws.close();
+      });
     } else if (token && deviceId) {
-      handleController(ws, token, deviceId);
+      handleController(ws, token, deviceId).catch((err) => {
+        console.error('Unhandled handleController error:', err.message);
+        ws.close();
+      });
     } else {
       closeWithError(ws, 'unauthorized');
     }

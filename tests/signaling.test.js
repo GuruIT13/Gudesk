@@ -21,9 +21,10 @@ function wsConnect(url) {
   });
 }
 
-function nextMessage(ws) {
-  return new Promise((resolve) => {
-    ws.once('message', (data) => resolve(JSON.parse(data)));
+function nextMessage(ws, timeoutMs = 3000) {
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('nextMessage timed out')), timeoutMs);
+    ws.once('message', (data) => { clearTimeout(t); resolve(JSON.parse(data)); });
   });
 }
 
@@ -128,9 +129,25 @@ describe('Room routing', () => {
     await Promise.all([waitClose(deviceWs), waitClose(controllerWs)]);
   });
 
-  test('controller sends offer — device receives it verbatim', async () => {
-    const deviceWs = await wsConnect(`${baseUrl}?device_uid=${deviceUidBkk}`);
+  test('controller connects first, then device — both receive peer-joined', async () => {
     const controllerWs = await wsConnect(`${baseUrl}?token=${tokenAlice}&device_id=${deviceIdBkk}`);
+    const deviceWs = await wsConnect(`${baseUrl}?device_uid=${deviceUidBkk}`);
+
+    const [ctrlMsg, devMsg] = await Promise.all([
+      nextMessage(controllerWs),
+      nextMessage(deviceWs),
+    ]);
+    expect(ctrlMsg).toEqual({ type: 'peer-joined' });
+    expect(devMsg).toEqual({ type: 'peer-joined' });
+
+    deviceWs.close();
+    controllerWs.close();
+    await Promise.all([waitClose(deviceWs), waitClose(controllerWs)]);
+  });
+
+  test('controller sends offer — device receives it verbatim', async () => {
+    const deviceWs = await wsConnect(`${baseUrl}?device_uid=${deviceUidOrgA}`);
+    const controllerWs = await wsConnect(`${baseUrl}?token=${tokenAlice}&device_id=${deviceIdOrgA}`);
 
     // drain peer-joined messages
     await Promise.all([nextMessage(deviceWs), nextMessage(controllerWs)]);
