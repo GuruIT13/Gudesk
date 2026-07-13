@@ -48,7 +48,9 @@ async function handleDevice(ws, deviceUid) {
   }
 
   ws.on('message', (data) => {
-    if (room.controller) send(room.controller, JSON.parse(data));
+    let msg;
+    try { msg = JSON.parse(data); } catch { return; }
+    if (room.controller) send(room.controller, msg);
   });
 
   ws.on('close', async () => {
@@ -65,6 +67,7 @@ async function handleDevice(ws, deviceUid) {
         console.error('Signaling session close error:', err.message);
       }
     }
+    if (!room.device && !room.controller) rooms.delete(deviceId);
   });
 }
 
@@ -91,7 +94,6 @@ async function handleController(ws, token, deviceId) {
 
   const room = getOrCreateRoom(deviceId);
   if (room.controller) return closeWithError(ws, 'device_busy');
-
   room.controller = ws;
 
   try {
@@ -126,6 +128,7 @@ async function handleController(ws, token, deviceId) {
           console.error('Signaling session-end error:', err.message);
         }
       }
+      room.sessionId = null;
       send(room.device, { type: 'session-end' });
       if (room.device) room.device.close();
       ws.close();
@@ -149,6 +152,7 @@ async function handleController(ws, token, deviceId) {
         console.error('Signaling disconnect error:', err.message);
       }
     }
+    if (!room.device && !room.controller) rooms.delete(deviceId);
   });
 }
 

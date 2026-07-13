@@ -65,8 +65,7 @@ describe('Device agent auth', () => {
 
   test('connects with invalid device_uid — receives error and connection closes', async () => {
     const ws = new WebSocket(`${baseUrl}?device_uid=00000000-0000-0000-0000-000000000000`);
-    const msg = await nextMessage(ws);
+    const [msg] = await Promise.all([nextMessage(ws), waitClose(ws)]);
     expect(msg).toEqual({ type: 'error', reason: 'device_not_found' });
-    await waitClose(ws);
   });
 });
