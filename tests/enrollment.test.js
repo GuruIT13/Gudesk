@@ -100,6 +100,13 @@ describe('POST /api/devices/enroll', () => {
     expect(res.body).toHaveProperty('device_uid');
     expect(res.body).toHaveProperty('org_id');
     expect(res.body.org_id).toBe(orgAId);
+
+    // verify the token is now consumed — reusing it returns 401
+    const reuse = await request(app)
+      .post('/api/devices/enroll')
+      .send({ token: validToken, hostname: 'REUSE-ATTEMPT' });
+    expect(reuse.status).toBe(401);
+    expect(reuse.body.error).toBe('invalid_token');
   });
 
   test('invalid/unknown token returns 401', async () => {
@@ -154,5 +161,12 @@ describe('POST /api/devices/enroll', () => {
       .send({ token: usedPlaintext, hostname: 'FAKE' });
     expect(res.status).toBe(401);
     expect(res.body.error).toBe('invalid_token');
+  });
+
+  test('missing token/hostname returns 400', async () => {
+    const res = await request(app)
+      .post('/api/devices/enroll')
+      .send({});
+    expect(res.status).toBe(400);
   });
 });
