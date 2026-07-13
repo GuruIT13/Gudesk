@@ -14,4 +14,4 @@ class SecureStorage {
   Future<void> deleteJwt() => _storage.delete(key: _kJwtKey);
 }
 
-final secureStorage = SecureStorage(const FlutterSecureStorage());
+const secureStorage = SecureStorage(FlutterSecureStorage());

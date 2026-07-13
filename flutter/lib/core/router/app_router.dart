@@ -6,7 +6,6 @@ import '../../features/session/presentation/connecting_screen.dart';
 import '../../features/session/presentation/remote_placeholder_screen.dart';
 import '../../features/session/domain/session_state.dart';
 import '../storage/secure_storage.dart';
-import '../api/api_client.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -14,10 +13,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) async {
       try {
         final jwt = await secureStorage.readJwt();
-        if (jwt != null) {
-          apiClient.setJwt(jwt);
-          ref.read(jwtProvider.notifier).state = jwt;
-        }
         final isLoggedIn = jwt != null;
         final isLoggingIn = state.matchedLocation == '/login';
         if (!isLoggedIn && !isLoggingIn) return '/login';
@@ -41,7 +36,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/remote',
         builder: (_, state) {
-          final info = state.extra as SessionInfo;
+          final info = state.extra;
+          if (info is! SessionInfo) return const HomeScreen();
           return RemotePlaceholderScreen(sessionInfo: info);
         },
       ),

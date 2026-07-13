@@ -26,7 +26,11 @@ final devicesRepositoryProvider = Provider<DevicesRepository>(
 final devicesProvider = StreamProvider.family<List<Device>, String>((ref, directoryId) async* {
   final repo = ref.watch(devicesRepositoryProvider);
   while (true) {
-    yield await repo.fetchByDirectory(directoryId);
+    try {
+      yield await repo.fetchByDirectory(directoryId);
+    } on DioException catch (_) {
+      // Swallow transient network errors; grid retains last good data.
+    }
     await Future.delayed(const Duration(seconds: 30));
   }
 });

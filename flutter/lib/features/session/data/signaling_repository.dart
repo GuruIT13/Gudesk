@@ -25,6 +25,8 @@ class SignalingNotifier extends Notifier<SignalingState> {
     required String baseWsUrl,
     Duration timeoutDuration = const Duration(seconds: 10),
   }) {
+    if (_channel != null) return; // guard against re-entry
+
     final factory = ref.read(wsChannelFactoryProvider);
     final uri = Uri.parse('$baseWsUrl/signal?token=$jwt&device_id=$deviceId');
     _channel = factory(uri);
@@ -44,12 +46,17 @@ class SignalingNotifier extends Notifier<SignalingState> {
         _timeout?.cancel();
 
         if (msg['type'] == 'peer-joined') {
+          final channel = _channel!;
+          // Transfer channel ownership to SessionInfo; stop listening.
+          _sub?.cancel();
+          _sub = null;
+          _channel = null;
           state = state.copyWith(
             status: SignalingStatus.connected,
             sessionInfo: SessionInfo(
               deviceId: deviceId,
               hostname: hostname,
-              wsChannel: _channel!,
+              wsChannel: channel,
             ),
           );
         } else if (msg['type'] == 'error') {

@@ -26,6 +26,11 @@ class _ConnectingScreenState extends ConsumerState<ConnectingScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _startConnect());
   }
 
+  Future<void> _cancel() async {
+    await ref.read(signalingNotifierProvider.notifier).cancel();
+    if (mounted) context.go('/home'); // ignore: use_build_context_synchronously
+  }
+
   Future<void> _startConnect() async {
     final jwt = await secureStorage.readJwt();
     if (!mounted || jwt == null) {
@@ -65,10 +70,7 @@ class _ConnectingScreenState extends ConsumerState<ConnectingScreen> {
             Text('Connecting to ${widget.hostname}...'),
             const SizedBox(height: 24),
             OutlinedButton(
-              onPressed: () async {
-                await ref.read(signalingNotifierProvider.notifier).cancel();
-                if (mounted) context.go('/home');
-              },
+              onPressed: _cancel,
               child: const Text('Cancel'),
             ),
           ],
