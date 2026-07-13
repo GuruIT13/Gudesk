@@ -1,3 +1,6 @@
+/**
+ * @param {import('node-pg-migrate').MigrationBuilder} pgm
+ */
 exports.up = (pgm) => {
   pgm.createTable('enrollment_tokens', {
     id: {
@@ -13,8 +16,8 @@ exports.up = (pgm) => {
     },
     created_by: {
       type: 'uuid',
-      notNull: true,
       references: '"users"',
+      onDelete: 'SET NULL',
     },
     token_hash: { type: 'varchar(64)', notNull: true, unique: true },
     expires_at: { type: 'timestamptz', notNull: true },
@@ -26,6 +29,12 @@ exports.up = (pgm) => {
   pgm.createIndex('enrollment_tokens', ['token_hash'], { name: 'idx_enrollment_tokens_hash' });
 };
 
+/**
+ * @param {import('node-pg-migrate').MigrationBuilder} pgm
+ */
 exports.down = (pgm) => {
+  // ============================================
+  // ENROLLMENT_TOKENS
+  // ============================================
   pgm.dropTable('enrollment_tokens');
 };
