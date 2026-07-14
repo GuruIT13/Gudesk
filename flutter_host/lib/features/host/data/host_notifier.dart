@@ -82,7 +82,7 @@ class HostNotifier extends Notifier<HostState> {
               ));
             case 'session-end':
               await _cleanup();
-              state = state.copyWith(status: HostStatus.waiting);
+              state = HostState(status: HostStatus.waiting);
           }
         } catch (e) {
           state = state.copyWith(
@@ -179,11 +179,12 @@ class HostNotifier extends Notifier<HostState> {
 
   Future<void> _cleanup() async {
     if (_pc == null) return;
+    final pc = _pc;
+    _pc = null; // null before any await to prevent concurrent double-cleanup
     await ref.read(screenCaptureServiceProvider).stopCapture();
     await _dataChannel?.close();
     _dataChannel = null;
-    await _pc?.close();
-    _pc = null;
+    await pc!.close();
   }
 
   Future<void> stop() async {

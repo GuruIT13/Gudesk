@@ -119,7 +119,7 @@ void main() {
           );
 
       ctrl.add(jsonEncode({'type': 'sdp_offer', 'sdp': 'v=0\r\n'}));
-      await Future.delayed(const Duration(milliseconds: 100));
+      await pumpEventQueue(times: 50);
 
       final calls = verify(() => sink.add(captureAny())).captured;
       final answerCall = calls
@@ -141,7 +141,7 @@ void main() {
           );
 
       ctrl.add(jsonEncode({'type': 'sdp_offer', 'sdp': 'v=0\r\n'}));
-      await Future.delayed(const Duration(milliseconds: 100));
+      await pumpEventQueue(times: 50);
 
       verify(() => mockCapture.startCapture()).called(1);
     });
@@ -159,7 +159,7 @@ void main() {
           );
 
       ctrl.add(jsonEncode({'type': 'sdp_offer', 'sdp': 'v=0\r\n'}));
-      await Future.delayed(const Duration(milliseconds: 100));
+      await pumpEventQueue(times: 50);
 
       expect(
         container.read(hostNotifierProvider).status,
@@ -180,7 +180,7 @@ void main() {
           );
 
       await ctrl.close();
-      await Future.delayed(const Duration(milliseconds: 50));
+      await pumpEventQueue(times: 50);
 
       final hostState = container.read(hostNotifierProvider);
       expect(hostState.status, equals(HostStatus.error));
