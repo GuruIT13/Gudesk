@@ -64,6 +64,7 @@ void main() {
     // Injector stubs
     when(() => mockInjector.injectMouseMove(any(), any())).thenAnswer((_) async {});
     when(() => mockInjector.injectMouseClick(any(), any(), any())).thenAnswer((_) async {});
+    when(() => mockInjector.injectMouseScroll(any(), any())).thenAnswer((_) async {});
     when(() => mockInjector.injectKey(any(), any(), any())).thenAnswer((_) async {});
   });
 

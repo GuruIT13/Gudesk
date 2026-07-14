@@ -178,6 +178,7 @@ class HostNotifier extends Notifier<HostState> {
   }
 
   Future<void> _cleanup() async {
+    if (_pc == null) return;
     await ref.read(screenCaptureServiceProvider).stopCapture();
     await _dataChannel?.close();
     _dataChannel = null;
@@ -188,7 +189,7 @@ class HostNotifier extends Notifier<HostState> {
   Future<void> stop() async {
     if (state.status == HostStatus.idle) return;
     final wasStreaming = state.status == HostStatus.streaming;
-    state = state.copyWith(status: HostStatus.idle); // set idle first to prevent onDone race
+    state = HostState.idle; // set idle first to prevent onDone race, also clears stale errorReason
     if (wasStreaming) {
       _ws?.sink.add(jsonEncode({'type': 'session-end'}));
     }
