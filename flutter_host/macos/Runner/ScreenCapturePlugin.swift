@@ -21,8 +21,7 @@ class ScreenCapturePlugin: NSObject, FlutterPlugin, SCStreamOutput, SCStreamDele
     case "hasPermission":
       result(CGPreflightScreenCaptureAccess())
     case "requestPermission":
-      CGRequestScreenCaptureAccess()
-      result(nil)
+      result(CGRequestScreenCaptureAccess())
     case "startCapture":
       startCapture(result: result)
     case "stopCapture":
@@ -34,49 +33,54 @@ class ScreenCapturePlugin: NSObject, FlutterPlugin, SCStreamOutput, SCStreamDele
 
   private func startCapture(result: @escaping FlutterResult) {
     SCShareableContent.getWithCompletionHandler { [weak self] content, error in
-      guard let self = self, let content = content, error == nil else {
-        result(FlutterError(
-          code: "CAPTURE_FAILED",
-          message: error?.localizedDescription ?? "Failed to get shareable content",
-          details: nil
-        ))
-        return
-      }
-
-      guard let display = content.displays.first else {
-        result(FlutterError(code: "NO_DISPLAY", message: "No display found", details: nil))
-        return
-      }
-
-      let config = SCStreamConfiguration()
-      config.width = 1920
-      config.height = 1080
-      config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
-      config.pixelFormat = kCVPixelFormatType_32BGRA
-
-      let filter = SCContentFilter(display: display, excludingWindows: [])
-      let newStream = SCStream(filter: filter, configuration: config, delegate: self)
-
-      do {
-        try newStream.addStreamOutput(self, type: .screen, sampleHandlerQueue: .global())
-        newStream.startCapture { error in
-          if let error = error {
-            result(FlutterError(
-              code: "START_FAILED",
-              message: error.localizedDescription,
-              details: nil
-            ))
-          } else {
-            result(nil)
-          }
+      DispatchQueue.main.async { [weak self] in
+        guard let self = self, let content = content, error == nil else {
+          result(FlutterError(
+            code: "CAPTURE_FAILED",
+            message: error?.localizedDescription ?? "Failed to get shareable content",
+            details: nil
+          ))
+          return
         }
-        self.stream = newStream
-      } catch {
-        result(FlutterError(
-          code: "STREAM_ERROR",
-          message: error.localizedDescription,
-          details: nil
-        ))
+
+        guard let display = content.displays.first else {
+          result(FlutterError(code: "NO_DISPLAY", message: "No display found", details: nil))
+          return
+        }
+
+        let config = SCStreamConfiguration()
+        config.width = 1920
+        config.height = 1080
+        config.minimumFrameInterval = CMTime(value: 1, timescale: 30)
+        config.pixelFormat = kCVPixelFormatType_32BGRA
+
+        let filter = SCContentFilter(display: display, excludingWindows: [])
+        let newStream = SCStream(filter: filter, configuration: config, delegate: self)
+
+        do {
+          try newStream.addStreamOutput(self, type: .screen, sampleHandlerQueue: .global())
+          self.stream = newStream
+          newStream.startCapture { [weak self] error in
+            DispatchQueue.main.async {
+              if let error = error {
+                self?.stream = nil
+                result(FlutterError(
+                  code: "START_FAILED",
+                  message: error.localizedDescription,
+                  details: nil
+                ))
+              } else {
+                result(nil)
+              }
+            }
+          }
+        } catch {
+          result(FlutterError(
+            code: "STREAM_ERROR",
+            message: error.localizedDescription,
+            details: nil
+          ))
+        }
       }
     }
   }
