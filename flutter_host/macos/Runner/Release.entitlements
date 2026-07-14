@@ -6,7 +6,7 @@
 	<true/>
 	<key>com.apple.security.screen-capture</key>
 	<true/>
-	<key>com.apple.security.automation.apple-events</key>
+	<key>com.apple.security.temporary-exception.accessibility</key>
 	<true/>
 </dict>
 </plist>

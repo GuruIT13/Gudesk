@@ -21,8 +21,8 @@ class InputInjectorPlugin: NSObject, FlutterPlugin {
 
     case "requestPermission":
       let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-      AXIsProcessTrustedWithOptions(options)
-      result(nil)
+      let trusted = AXIsProcessTrustedWithOptions(options)
+      result(trusted)
 
     case "injectMouseMove":
       guard let x = args?["x"] as? Double, let y = args?["y"] as? Double else {
@@ -57,9 +57,11 @@ class InputInjectorPlugin: NSObject, FlutterPlugin {
         result(FlutterError(code: "INVALID_ARGS", message: "dy required", details: nil))
         return
       }
-      let scrollDelta = Int32(dy * -3)
+      let dx = args?["dx"] as? Double ?? 0.0
+      let scroll1 = Int32(dy * -3)
+      let scroll2 = Int32(dx * -3)
       let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel,
-                          wheelCount: 1, wheel1: scrollDelta, wheel2: 0, wheel3: 0)
+                          wheelCount: 2, wheel1: scroll1, wheel2: scroll2, wheel3: 0)
       event?.post(tap: .cghidEventTap)
       result(nil)
 
@@ -67,6 +69,10 @@ class InputInjectorPlugin: NSObject, FlutterPlugin {
       guard let keyCode = args?["keyCode"] as? Int,
             let down = args?["down"] as? Bool else {
         result(FlutterError(code: "INVALID_ARGS", message: "keyCode and down required", details: nil))
+        return
+      }
+      guard keyCode >= 0 && keyCode <= Int(UInt16.max) else {
+        result(FlutterError(code: "INVALID_ARGS", message: "keyCode out of range", details: nil))
         return
       }
       let modifiers = args?["modifiers"] as? [String] ?? []
