@@ -77,6 +77,10 @@ void InputInjectorPlugin::HandleMethodCall(
   } else if (method_call.method_name() == "injectMouseMove") {
     double x = get_double("x");
     double y = get_double("y");
+    if (!std::isfinite(x) || !std::isfinite(y)) {
+      result->Error("INVALID_ARGS", "Coordinates must be finite");
+      return;
+    }
     int screen_w = GetSystemMetrics(SM_CXSCREEN);
     int screen_h = GetSystemMetrics(SM_CYSCREEN);
     if (screen_w <= 0 || screen_h <= 0) {
@@ -96,6 +100,10 @@ void InputInjectorPlugin::HandleMethodCall(
     std::string button = get_string("button");
     double x = get_double("x");
     double y = get_double("y");
+    if (!std::isfinite(x) || !std::isfinite(y)) {
+      result->Error("INVALID_ARGS", "Coordinates must be finite");
+      return;
+    }
     int screen_w = GetSystemMetrics(SM_CXSCREEN);
     int screen_h = GetSystemMetrics(SM_CYSCREEN);
     if (screen_w <= 0 || screen_h <= 0) {
