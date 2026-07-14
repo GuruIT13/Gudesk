@@ -71,13 +71,32 @@ void ScreenCapturePlugin::StartCapture(
   }
 
   ComPtr<IDXGIDevice> dxgi_device;
-  d3d_device_.As(&dxgi_device);
+  hr = d3d_device_.As(&dxgi_device);
+  if (FAILED(hr) || !dxgi_device) {
+    result->Error("DXGI_FAILED", "Failed to get IDXGIDevice");
+    return;
+  }
+
   ComPtr<IDXGIAdapter> adapter;
-  dxgi_device->GetAdapter(&adapter);
+  hr = dxgi_device->GetAdapter(&adapter);
+  if (FAILED(hr) || !adapter) {
+    result->Error("DXGI_FAILED", "Failed to get IDXGIAdapter");
+    return;
+  }
+
   ComPtr<IDXGIOutput> output;
-  adapter->EnumOutputs(0, &output);
+  hr = adapter->EnumOutputs(0, &output);
+  if (FAILED(hr) || !output) {
+    result->Error("DXGI_FAILED", "No display output found");
+    return;
+  }
+
   ComPtr<IDXGIOutput1> output1;
-  output.As(&output1);
+  hr = output.As(&output1);
+  if (FAILED(hr) || !output1) {
+    result->Error("DXGI_FAILED", "Failed to get IDXGIOutput1");
+    return;
+  }
 
   hr = output1->DuplicateOutput(d3d_device_.Get(), &duplication_);
   if (FAILED(hr)) {
@@ -108,7 +127,7 @@ void ScreenCapturePlugin::CaptureLoop() {
     ComPtr<IDXGIResource> desktop_resource;
 
     HRESULT hr =
-        duplication_->AcquireNextFrame(100, &frame_info, &desktop_resource);
+        duplication_->AcquireNextFrame(16, &frame_info, &desktop_resource);
     if (hr == DXGI_ERROR_WAIT_TIMEOUT) {
       continue;
     }
