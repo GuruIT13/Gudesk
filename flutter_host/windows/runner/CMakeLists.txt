@@ -15,6 +15,7 @@ add_executable(${BINARY_NAME} WIN32
   "Runner.rc"
   "runner.exe.manifest"
   "../screen_capture_plugin.cpp"
+  "../input_injector_plugin.cpp"
 )
 
 # Apply the standard set of build settings. This can be removed for applications
