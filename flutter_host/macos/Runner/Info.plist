@@ -28,5 +28,7 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>GuDesk Host needs Screen Recording permission to stream your desktop.</string>
 </dict>
 </plist>
