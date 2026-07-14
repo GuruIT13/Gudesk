@@ -8,9 +8,13 @@ class HostState {
 
   static const idle = HostState(status: HostStatus.idle);
 
-  HostState copyWith({HostStatus? status, String? errorReason}) =>
+  static const Object _unset = Object();
+
+  HostState copyWith({HostStatus? status, Object? errorReason = _unset}) =>
       HostState(
         status: status ?? this.status,
-        errorReason: errorReason ?? this.errorReason,
+        errorReason: identical(errorReason, _unset)
+            ? this.errorReason
+            : errorReason as String?,
       );
 }
