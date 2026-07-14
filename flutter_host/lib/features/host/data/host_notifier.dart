@@ -57,7 +57,8 @@ class HostNotifier extends Notifier<HostState> {
     required String deviceUid,
     required String wsUrl,
   }) async {
-    if (state.status != HostStatus.idle) return;
+    if (state.status != HostStatus.idle && state.status != HostStatus.error) return;
+    state = HostState.idle;
 
     state = state.copyWith(status: HostStatus.connecting);
 

@@ -46,7 +46,7 @@ class _HostScreenState extends ConsumerState<HostScreen> {
           children: [
             _buildStatusWidget(hostState),
             const SizedBox(height: 32),
-            if (hostState.status != HostStatus.idle)
+            if (hostState.status != HostStatus.idle && hostState.status != HostStatus.error)
               OutlinedButton(
                 onPressed: _stop,
                 child: const Text('Stop Hosting'),
