@@ -58,8 +58,11 @@ class InputInjectorPlugin: NSObject, FlutterPlugin {
         return
       }
       let dx = args?["dx"] as? Double ?? 0.0
-      let scroll1 = Int32(dy * -3)
-      let scroll2 = Int32(dx * -3)
+      let clampI32 = { (v: Double) -> Int32 in
+        Int32(max(Double(Int32.min), min(Double(Int32.max), v)))
+      }
+      let scroll1 = clampI32(dy * -3)
+      let scroll2 = clampI32(dx * -3)
       let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel,
                           wheelCount: 2, wheel1: scroll1, wheel2: scroll2, wheel3: 0)
       event?.post(tap: .cghidEventTap)
