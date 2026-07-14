@@ -90,9 +90,21 @@ class ScreenCapturePlugin: NSObject, FlutterPlugin, SCStreamOutput, SCStreamDele
       result(nil)
       return
     }
-    stream.stopCapture { _ in }
     self.stream = nil
-    result(nil)
+    stream.stopCapture { [weak self] error in
+      DispatchQueue.main.async {
+        _ = self // suppress unused warning
+        if let error = error {
+          result(FlutterError(
+            code: "STOP_FAILED",
+            message: error.localizedDescription,
+            details: nil
+          ))
+        } else {
+          result(nil)
+        }
+      }
+    }
   }
 
   // SCStreamOutput — receives captured frames
@@ -112,6 +124,8 @@ class ScreenCapturePlugin: NSObject, FlutterPlugin, SCStreamOutput, SCStreamDele
 
   // SCStreamDelegate
   func stream(_ stream: SCStream, didStopWithError error: Error) {
-    self.stream = nil
+    DispatchQueue.main.async { [weak self] in
+      self?.stream = nil
+    }
   }
 }
