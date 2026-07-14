@@ -82,7 +82,7 @@ class HostNotifier extends Notifier<HostState> {
               ));
             case 'session-end':
               await _cleanup();
-              state = HostState(status: HostStatus.waiting);
+              state = const HostState(status: HostStatus.waiting);
           }
         } catch (e) {
           state = state.copyWith(
