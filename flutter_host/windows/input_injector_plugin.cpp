@@ -46,6 +46,9 @@ void InputInjectorPlugin::HandleMethodCall(
     auto it = args->find(flutter::EncodableValue(key));
     if (it == args->end()) return 0;
     if (auto* i = std::get_if<int>(&it->second)) return *i;
+    if (auto* l = std::get_if<int64_t>(&it->second))
+      return static_cast<int>(
+          std::max((int64_t)INT_MIN, std::min((int64_t)INT_MAX, *l)));
     return 0;
   };
 
@@ -76,6 +79,10 @@ void InputInjectorPlugin::HandleMethodCall(
     double y = get_double("y");
     int screen_w = GetSystemMetrics(SM_CXSCREEN);
     int screen_h = GetSystemMetrics(SM_CYSCREEN);
+    if (screen_w <= 0 || screen_h <= 0) {
+      result->Error("SYSTEM_ERROR", "Failed to get screen metrics");
+      return;
+    }
 
     INPUT input = {};
     input.type = INPUT_MOUSE;
@@ -91,6 +98,10 @@ void InputInjectorPlugin::HandleMethodCall(
     double y = get_double("y");
     int screen_w = GetSystemMetrics(SM_CXSCREEN);
     int screen_h = GetSystemMetrics(SM_CYSCREEN);
+    if (screen_w <= 0 || screen_h <= 0) {
+      result->Error("SYSTEM_ERROR", "Failed to get screen metrics");
+      return;
+    }
     LONG abs_x = static_cast<LONG>((x / screen_w) * 65535.0);
     LONG abs_y = static_cast<LONG>((y / screen_h) * 65535.0);
 
@@ -98,17 +109,20 @@ void InputInjectorPlugin::HandleMethodCall(
     DWORD down_flag = is_right ? MOUSEEVENTF_RIGHTDOWN : MOUSEEVENTF_LEFTDOWN;
     DWORD up_flag   = is_right ? MOUSEEVENTF_RIGHTUP   : MOUSEEVENTF_LEFTUP;
 
-    INPUT inputs[2] = {};
+    INPUT inputs[3] = {};
+    // Move to position first
     inputs[0].type = INPUT_MOUSE;
     inputs[0].mi.dx = abs_x;
     inputs[0].mi.dy = abs_y;
-    inputs[0].mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | down_flag;
+    inputs[0].mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE;
+    // Button down (no position flags)
     inputs[1].type = INPUT_MOUSE;
-    inputs[1].mi.dx = abs_x;
-    inputs[1].mi.dy = abs_y;
-    inputs[1].mi.dwFlags = MOUSEEVENTF_MOVE | MOUSEEVENTF_ABSOLUTE | up_flag;
+    inputs[1].mi.dwFlags = down_flag;
+    // Button up (no position flags)
+    inputs[2].type = INPUT_MOUSE;
+    inputs[2].mi.dwFlags = up_flag;
 
-    SendInput(2, inputs, sizeof(INPUT));
+    SendInput(3, inputs, sizeof(INPUT));
     result->Success();
 
   } else if (method_call.method_name() == "injectMouseScroll") {
@@ -121,7 +135,7 @@ void InputInjectorPlugin::HandleMethodCall(
       // clamp to DWORD range; WHEEL_DELTA = 120 per notch, invert sign
       double raw_v = dy * -static_cast<double>(WHEEL_DELTA);
       input.mi.mouseData = static_cast<DWORD>(
-          std::max(-32768.0, std::min(32767.0, raw_v)));
+          static_cast<LONG>(std::max(-32768.0, std::min(32767.0, raw_v))));
       input.mi.dwFlags = MOUSEEVENTF_WHEEL;
       SendInput(1, &input, sizeof(INPUT));
     }
@@ -131,7 +145,7 @@ void InputInjectorPlugin::HandleMethodCall(
       input.type = INPUT_MOUSE;
       double raw_h = dx * static_cast<double>(WHEEL_DELTA);
       input.mi.mouseData = static_cast<DWORD>(
-          std::max(-32768.0, std::min(32767.0, raw_h)));
+          static_cast<LONG>(std::max(-32768.0, std::min(32767.0, raw_h))));
       input.mi.dwFlags = MOUSEEVENTF_HWHEEL;
       SendInput(1, &input, sizeof(INPUT));
     }
