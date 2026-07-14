@@ -15,6 +15,10 @@ class AppDelegate: FlutterAppDelegate {
     guard let controller = mainFlutterWindow?.contentViewController
             as? FlutterViewController else { return }
 
+    InputInjectorPlugin.register(
+      with: controller.registrar(forPlugin: "InputInjectorPlugin")!
+    )
+
     if #available(macOS 12.3, *) {
       ScreenCapturePlugin.register(
         with: controller.registrar(forPlugin: "ScreenCapturePlugin")!

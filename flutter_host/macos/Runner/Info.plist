@@ -30,5 +30,7 @@
 	<string>NSApplication</string>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>GuDesk Host needs Screen Recording permission to stream your desktop.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>GuDesk Host needs Accessibility permission to inject keyboard and mouse input.</string>
 </dict>
 </plist>
